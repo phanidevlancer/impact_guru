@@ -46,29 +46,29 @@ ctrl1, ctrl2, ctrl3, ctrl4 = st.columns(4)
 
 with ctrl1:
     if campaign.status == "paused":
-        if st.button("▶ Start / Resume", use_container_width=True):
+        if st.button("▶ Start / Resume", width='stretch'):
             set_campaign_status(campaign.id, "active")
             st.success("Campaign started.")
             st.rerun()
     elif campaign.status == "active":
-        if st.button("⏸ Pause Campaign", use_container_width=True):
+        if st.button("⏸ Pause Campaign", width='stretch'):
             set_campaign_status(campaign.id, "paused")
             st.success("Campaign paused.")
             st.rerun()
 
 with ctrl2:
-    if st.button("⚡ Force Next Batch Now", use_container_width=True):
+    if st.button("⚡ Force Next Batch Now", width='stretch'):
         set_force_next_batch(campaign.id, True)
         st.success("Next batch will start within 30 seconds.")
 
 with ctrl3:
-    if st.button("✅ Mark as Done", use_container_width=True):
+    if st.button("✅ Mark as Done", width='stretch'):
         set_campaign_status(campaign.id, "done")
         st.success("Campaign marked as done.")
         st.rerun()
 
 with ctrl4:
-    if st.button("🔄 Refresh", use_container_width=True):
+    if st.button("🔄 Refresh", width='stretch'):
         st.rerun()
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ batch_df = (
     .unstack(fill_value=0)
     .reset_index()
 )
-st.dataframe(batch_df, use_container_width=True)
+st.dataframe(batch_df, width='stretch')
 
 # ── Last Seen breakdown ───────────────────────────────────────────────────────
 st.subheader("Last Seen (sent messages only)")
@@ -121,7 +121,7 @@ sent_df_ls = df[df["status"] == "sent"]
 if not sent_df_ls.empty:
     ls_counts = sent_df_ls["last_seen"].value_counts().reset_index()
     ls_counts.columns = ["last_seen", "count"]
-    st.dataframe(ls_counts, use_container_width=True)
+    st.dataframe(ls_counts, width='stretch')
 
 # ── Sent over time ────────────────────────────────────────────────────────────
 st.subheader("Sent Over Time")
@@ -134,13 +134,13 @@ if not sent_df.empty:
 # ── Template usage ────────────────────────────────────────────────────────────
 st.subheader("Template Usage")
 template_counts = df.groupby("message").size().reset_index(name="count").sort_values("count", ascending=False)
-st.dataframe(template_counts, use_container_width=True)
+st.dataframe(template_counts, width='stretch')
 
 # ── Recent messages ───────────────────────────────────────────────────────────
 st.subheader("Recent Messages (last 50)")
 st.dataframe(
     df[df["status"] != "no_account"].sort_values("sent_at", ascending=False).head(50),
-    use_container_width=True,
+    width='stretch',
 )
 
 # ── Search ────────────────────────────────────────────────────────────────────
@@ -148,4 +148,4 @@ st.subheader("Search by Phone Number")
 search = st.text_input("Enter phone number")
 if search:
     result = df[df["phone_number"].str.contains(search)]
-    st.dataframe(result, use_container_width=True)
+    st.dataframe(result, width='stretch')
