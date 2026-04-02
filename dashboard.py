@@ -82,6 +82,7 @@ if not messages:
 df = pd.DataFrame([{
     "phone_number":    m.phone_number,
     "status":          m.status,
+    "last_seen":       m.last_seen or "—",
     "batch":           m.batch_number,
     "telegram_msg_id": m.telegram_msg_id,
     "sent_at":         m.sent_at,
@@ -113,6 +114,14 @@ batch_df = (
     .reset_index()
 )
 st.dataframe(batch_df, use_container_width=True)
+
+# ── Last Seen breakdown ───────────────────────────────────────────────────────
+st.subheader("Last Seen (sent messages only)")
+sent_df_ls = df[df["status"] == "sent"]
+if not sent_df_ls.empty:
+    ls_counts = sent_df_ls["last_seen"].value_counts().reset_index()
+    ls_counts.columns = ["last_seen", "count"]
+    st.dataframe(ls_counts, use_container_width=True)
 
 # ── Sent over time ────────────────────────────────────────────────────────────
 st.subheader("Sent Over Time")

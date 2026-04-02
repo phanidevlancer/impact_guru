@@ -2,7 +2,12 @@ import asyncio
 import random
 import logging
 from telethon.tl.functions.contacts import ImportContactsRequest, DeleteContactsRequest
-from telethon.tl.types import InputPhoneContact
+from telethon.tl.types import (
+    InputPhoneContact,
+    UserStatusOnline, UserStatusOffline,
+    UserStatusRecently, UserStatusLastWeek,
+    UserStatusLastMonth,
+)
 
 from app.db import (
     get_or_create_campaign,
@@ -29,26 +34,41 @@ def _increment_phone(phone: str) -> str:
     return prefix + incremented
 
 
-async def _resolve_and_send(client, phone: str, message: str) -> tuple[int | None, str]:
+def _parse_last_seen(status) -> str:
+    if isinstance(status, UserStatusOnline):
+        return "online"
+    if isinstance(status, UserStatusOffline):
+        return status.was_online.strftime("%Y-%m-%d %H:%M") if status.was_online else "offline"
+    if isinstance(status, UserStatusRecently):
+        return "recently"
+    if isinstance(status, UserStatusLastWeek):
+        return "last_week"
+    if isinstance(status, UserStatusLastMonth):
+        return "last_month"
+    return "unknown"
+
+
+async def _resolve_and_send(client, phone: str, message: str) -> tuple[int | None, str, str | None]:
     """
     Import contact temporarily, send message, delete contact.
-    Returns (telegram_msg_id, status).
+    Returns (telegram_msg_id, status, last_seen).
     """
     try:
         result = await client(ImportContactsRequest([
             InputPhoneContact(client_id=0, phone=phone, first_name="T", last_name="")
         ]))
         if not result.users:
-            return None, "no_account"
+            return None, "no_account", None
 
         entity = result.users[0]
+        last_seen = _parse_last_seen(entity.status)
         sent = await client.send_message(entity, message)
         await client(DeleteContactsRequest(id=[entity]))
-        return sent.id, "sent"
+        return sent.id, "sent", last_seen
 
     except Exception as e:
         logger.error(f"Failed to send to {phone}: {e}")
-        return None, "failed"
+        return None, "failed", None
 
 
 async def run_batch(
@@ -104,7 +124,7 @@ async def run_batch(
 
             print(f"[{i+1}/{batch_size}] Sending to {current_number} ...", end=" ", flush=True)
 
-            telegram_msg_id, status = await _resolve_and_send(client, current_number, message)
+            telegram_msg_id, status, last_seen = await _resolve_and_send(client, current_number, message)
 
             save_message(
                 campaign_id=campaign.id,
@@ -114,6 +134,7 @@ async def run_batch(
                 telegram_msg_id=telegram_msg_id,
                 status=status,
                 batch_number=batch_number,
+                last_seen=last_seen,
             )
 
             print(f"{status.upper()} (msg_id={telegram_msg_id})")

@@ -39,6 +39,7 @@ class Message(Base):
     message_text   = Column(Text, nullable=False)
     telegram_msg_id = Column(Integer, nullable=True)
     status         = Column(String, nullable=False)   # sent | failed | no_account
+    last_seen      = Column(String, nullable=True)    # online | recently | last_week | last_month | offline | unknown
     batch_number   = Column(Integer, nullable=False)
     sent_at        = Column(DateTime, default=datetime.utcnow)
 
@@ -114,6 +115,7 @@ def save_message(
     telegram_msg_id: int | None,
     status: str,
     batch_number: int,
+    last_seen: str | None = None,
 ):
     with Session() as s:
         msg = Message(
@@ -123,6 +125,7 @@ def save_message(
             message_text=message_text,
             telegram_msg_id=telegram_msg_id,
             status=status,
+            last_seen=last_seen,
             batch_number=batch_number,
         )
         s.add(msg)
