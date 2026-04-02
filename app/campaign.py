@@ -6,7 +6,9 @@ from telethon.tl.types import InputPhoneContact
 
 from app.db import (
     get_or_create_campaign,
-    get_campaign,
+    reload_campaign,
+    set_campaign_status,
+    set_force_next_batch,
     update_campaign_progress,
     save_message,
     get_stats,
@@ -83,10 +85,19 @@ async def run_batch(
     client = build_client()
     await client.start(phone=client.phone)
 
-    sent_count = 0
-
     async with client:
         for i in range(batch_size):
+            # Check if paused before each message
+            live = reload_campaign(campaign.id)
+            if live.status == "paused":
+                print("Campaign paused. Waiting...")
+                while True:
+                    await asyncio.sleep(30)
+                    live = reload_campaign(campaign.id)
+                    if live.status == "active":
+                        print("Campaign resumed.")
+                        break
+
             template = random.choice(TEMPLATES)
             message = template.format(link=link)
             template_id = TEMPLATES.index(template)
@@ -107,12 +118,10 @@ async def run_batch(
 
             print(f"{status.upper()} (msg_id={telegram_msg_id})")
 
-            if status == "sent":
-                sent_count += 1
-
             next_number = _increment_phone(current_number)
             update_campaign_progress(campaign.id, next_number, 1 if status == "sent" else 0)
             current_number = next_number
+
 
             # Random delay between messages (skip after last)
             if i < batch_size - 1:
@@ -141,7 +150,23 @@ async def run_scheduled(
     max_batches: int | None = None,
 ):
     """Run batches continuously with a delay between each batch."""
+    init_db()
+    campaign = get_or_create_campaign(campaign_name, start_number, link)
     batch_count = 0
+
+    # Wait for admin to start the campaign from the dashboard
+    print("Worker ready. Waiting for campaign to be started from the dashboard...")
+    while True:
+        live = reload_campaign(campaign.id)
+        if live.status == "active":
+            break
+        if live.status == "done":
+            print("Campaign is marked done. Exiting.")
+            return
+        await asyncio.sleep(30)
+
+    print("Campaign started!")
+
     while True:
         await run_batch(
             campaign_name=campaign_name,
@@ -158,4 +183,21 @@ async def run_scheduled(
             break
 
         print(f"Next batch in {batch_delay}s ({batch_delay // 60} min). Press Ctrl+C to stop.\n")
-        await asyncio.sleep(batch_delay)
+        # Wait in 30s intervals so we can respond to force_next_batch or pause
+        elapsed = 0
+        while elapsed < batch_delay:
+            await asyncio.sleep(30)
+            elapsed += 30
+            live = reload_campaign(campaign.id)
+            if live.force_next_batch:
+                print("Force next batch triggered from dashboard.")
+                set_force_next_batch(live.id, False)
+                break
+            if live.status == "paused":
+                print("Campaign paused between batches. Waiting...")
+                while True:
+                    await asyncio.sleep(30)
+                    live = reload_campaign(live.id)
+                    if live.status == "active":
+                        print("Campaign resumed.")
+                        break

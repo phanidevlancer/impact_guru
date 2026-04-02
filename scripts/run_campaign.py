@@ -1,25 +1,6 @@
-"""
-Campaign runner — sends batches of Telegram messages and tracks progress in DB.
-
-Usage:
-  # Run a single batch of 10 messages
-  python3 scripts/run_campaign.py --name my_campaign --start +919000000000 --link "https://impactguru.com/..."
-
-  # Run continuously (batch every hour)
-  python3 scripts/run_campaign.py --name my_campaign --start +919000000000 --link "https://..." --schedule --batch-delay 3600
-
-  # Custom batch size and message intervals
-  python3 scripts/run_campaign.py --name my_campaign --start +919000000000 --link "https://..." \
-      --batch-size 10 --min-delay 45 --max-delay 90 --schedule
-"""
-
 import asyncio
 import argparse
-import logging
-
 from app.campaign import run_batch, run_scheduled
-
-logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
 
 
 def parse_args():

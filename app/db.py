@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, func
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, Boolean, func
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///campaign.db")
@@ -22,9 +22,11 @@ class Campaign(Base):
     start_number = Column(String, nullable=False)
     current_number = Column(String, nullable=False)
     link         = Column(String, nullable=False)
-    status       = Column(String, default="active")   # active | paused | done
-    total_sent   = Column(Integer, default=0)
-    created_at   = Column(DateTime, default=datetime.utcnow)
+    status           = Column(String, default="paused")   # paused | active | done
+    total_sent       = Column(Integer, default=0)
+    batch_size       = Column(Integer, default=10)
+    force_next_batch = Column(Boolean, default=False)
+    created_at       = Column(DateTime, default=datetime.utcnow)
 
 
 class Message(Base):
@@ -68,19 +70,32 @@ def get_or_create_campaign(name: str, start_number: str, link: str) -> Campaign:
             link=campaign.link,
             status=campaign.status,
             total_sent=campaign.total_sent,
+            batch_size=campaign.batch_size,
+            force_next_batch=campaign.force_next_batch,
         )
 
 
-def get_campaign(name: str) -> Campaign | None:
+def reload_campaign(campaign_id: int) -> Campaign:
     with Session() as s:
-        c = s.query(Campaign).filter_by(name=name).first()
-        if not c:
-            return None
+        c = s.query(Campaign).filter_by(id=campaign_id).first()
         return Campaign(
             id=c.id, name=c.name, start_number=c.start_number,
             current_number=c.current_number, link=c.link,
             status=c.status, total_sent=c.total_sent,
+            batch_size=c.batch_size, force_next_batch=c.force_next_batch,
         )
+
+
+def set_campaign_status(campaign_id: int, status: str):
+    with Session() as s:
+        s.query(Campaign).filter_by(id=campaign_id).update({"status": status})
+        s.commit()
+
+
+def set_force_next_batch(campaign_id: int, value: bool):
+    with Session() as s:
+        s.query(Campaign).filter_by(id=campaign_id).update({"force_next_batch": value})
+        s.commit()
 
 
 def update_campaign_progress(campaign_id: int, next_number: str, sent_count: int):

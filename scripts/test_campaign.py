@@ -3,14 +3,10 @@ Quick test — sends to a fixed list of numbers using the campaign templates & D
 """
 import asyncio
 import random
-import logging
-
 from app.db import init_db, get_or_create_campaign, save_message, get_stats, get_next_batch_number
 from app.templates import TEMPLATES
 from app.client import build_client
 from app.campaign import _resolve_and_send
-
-logging.basicConfig(level=logging.WARNING)
 
 TEST_NUMBERS = [
     "+919985788376",
