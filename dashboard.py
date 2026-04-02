@@ -139,7 +139,7 @@ st.dataframe(template_counts, use_container_width=True)
 # ── Recent messages ───────────────────────────────────────────────────────────
 st.subheader("Recent Messages (last 50)")
 st.dataframe(
-    df.sort_values("sent_at", ascending=False).head(50),
+    df[df["status"] != "no_account"].sort_values("sent_at", ascending=False).head(50),
     use_container_width=True,
 )
 
