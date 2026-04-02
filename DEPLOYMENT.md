@@ -125,7 +125,7 @@ Fill in the values:
 ```
 API_ID=your_api_id_from_step1
 API_HASH=your_api_hash_from_step1
-PHONE_NUMBER=+919866802205
+PHONE_NUMBER=+919XXXXXXXXX
 SESSION_NAME=telegram_session
 SESSION_STRING=your_session_string_from_step5
 ```
