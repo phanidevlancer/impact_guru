@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Env
+.env
+
+# Telethon session files
+*.session
+*.session-journal
+
+# Build artifacts
+*.egg-info/
+
+# SQLite local DB
+campaign.db
+
+# macOS
+.DS_Store
