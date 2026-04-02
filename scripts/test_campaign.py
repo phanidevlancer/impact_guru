@@ -32,7 +32,7 @@ async def main():
             template_id = TEMPLATES.index(template)
 
             print(f"Sending to {phone} ...", end=" ", flush=True)
-            telegram_msg_id, status, last_seen = await _resolve_and_send(client, phone, message)
+            telegram_msg_id, status, last_seen, fail_reason = await _resolve_and_send(client, phone, message)
 
             save_message(
                 campaign_id=campaign.id,
@@ -43,6 +43,7 @@ async def main():
                 status=status,
                 batch_number=batch_number,
                 last_seen=last_seen,
+                fail_reason=fail_reason,
             )
             print(f"{status.upper()} (msg_id={telegram_msg_id})")
             print(f"  Message: {message}\n")

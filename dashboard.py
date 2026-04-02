@@ -83,6 +83,7 @@ df = pd.DataFrame([{
     "phone_number":    m.phone_number,
     "status":          m.status,
     "last_seen":       m.last_seen or "—",
+    "fail_reason":     m.fail_reason or "—",
     "batch":           m.batch_number,
     "telegram_msg_id": m.telegram_msg_id,
     "sent_at":         m.sent_at,

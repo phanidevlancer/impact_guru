@@ -48,27 +48,27 @@ def _parse_last_seen(status) -> str:
     return "unknown"
 
 
-async def _resolve_and_send(client, phone: str, message: str) -> tuple[int | None, str, str | None]:
+async def _resolve_and_send(client, phone: str, message: str) -> tuple[int | None, str, str | None, str | None]:
     """
     Import contact temporarily, send message, delete contact.
-    Returns (telegram_msg_id, status, last_seen).
+    Returns (telegram_msg_id, status, last_seen, fail_reason).
     """
     try:
         result = await client(ImportContactsRequest([
             InputPhoneContact(client_id=0, phone=phone, first_name="T", last_name="")
         ]))
         if not result.users:
-            return None, "no_account", None
+            return None, "no_account", None, None
 
         entity = result.users[0]
         last_seen = _parse_last_seen(entity.status)
         sent = await client.send_message(entity, message)
         await client(DeleteContactsRequest(id=[entity]))
-        return sent.id, "sent", last_seen
+        return sent.id, "sent", last_seen, None
 
     except Exception as e:
         logger.error(f"Failed to send to {phone}: {e}")
-        return None, "failed", None
+        return None, "failed", None, str(e)
 
 
 async def run_batch(
@@ -124,7 +124,7 @@ async def run_batch(
 
             print(f"[{i+1}/{batch_size}] Sending to {current_number} ...", end=" ", flush=True)
 
-            telegram_msg_id, status, last_seen = await _resolve_and_send(client, current_number, message)
+            telegram_msg_id, status, last_seen, fail_reason = await _resolve_and_send(client, current_number, message)
 
             save_message(
                 campaign_id=campaign.id,
@@ -135,6 +135,7 @@ async def run_batch(
                 status=status,
                 batch_number=batch_number,
                 last_seen=last_seen,
+                fail_reason=fail_reason,
             )
 
             print(f"{status.upper()} (msg_id={telegram_msg_id})")
